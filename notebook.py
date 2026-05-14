@@ -11,11 +11,11 @@ Original file is located at
 - **Email:** arif76440@gmail.com
 - **ID Dicoding:** arif76440
 
-# Domain Proyek
+## Domain Proyek
 
-Perkembangan teknologi deep learning memungkinkan komputer melakukan pengenalan objek visual dengan tingkat akurasi yang tinggi. Salah satu implementasi deep learning yang paling populer dalam bidang computer vision adalah klasifikasi gambar menggunakan Convolutional Neural Network (CNN).
+Perkembangan teknologi Deep Learning memungkinkan komputer melakukan pengenalan objek visual dengan tingkat akurasi yang tinggi. Salah satu implementasi Deep Learning yang paling populer dalam bidang Computer Vision adalah klasifikasi gambar menggunakan Convolutional Neural Network (CNN).
 
-Pada proyek ini dibangun model CNN untuk mengklasifikasikan gambar pemandangan alam menggunakan Intel Image Classification Dataset yang terdiri dari enam kategori yaitu buildings, forest, glacier, mountain, sea, dan street.
+Pada proyek ini dibangun model klasifikasi gambar pemandangan alam menggunakan Intel Image Classification Dataset dengan lima kategori yaitu forest, glacier, mountain, sea, dan street.
 
 Dataset dipilih karena memiliki jumlah gambar yang besar, variasi visual yang beragam, serta ukuran gambar asli yang tidak seragam sehingga cocok digunakan untuk melatih model klasifikasi gambar pada kasus nyata.
 
@@ -33,34 +33,36 @@ Selain membangun model klasifikasi, proyek ini juga melakukan konversi model ke 
 
 ## Goals
 
-1. Mengembangkan model CNN berbasis Sequential untuk klasifikasi gambar.
+1. Mengembangkan model klasifikasi gambar berbasis Sequential CNN menggunakan pendekatan Transfer Learning MobileNetV2.
 
-2. Mencapai akurasi model minimal 85%.
+2. Mencapai akurasi model minimal 85% pada data testing.
 
-3. Mengimplementasikan preprocessing dan data augmentation untuk meningkatkan performa model.
+3. Mengimplementasikan preprocessing dan data augmentation untuk meningkatkan kemampuan generalisasi model.
 
-4. Menghasilkan model yang dapat digunakan pada berbagai platform deployment.
+4. Menghasilkan model yang dapat digunakan pada berbagai platform deployment seperti TensorFlow SavedModel, TensorFlow Lite, dan TensorFlow.js.
 
 ## Solution Statements
 
 Solusi yang digunakan pada proyek ini adalah:
 
-- Menggunakan arsitektur Sequential CNN dengan beberapa layer Conv2D dan MaxPooling2D.
+- Menggunakan arsitektur Sequential berbasis Transfer Learning MobileNetV2 untuk meningkatkan performa klasifikasi gambar.
 
-- Mengimplementasikan data augmentation untuk meningkatkan variasi data training.
+- Mengimplementasikan data augmentation untuk meningkatkan variasi data training dan kemampuan generalisasi model.
 
-- Menggunakan callback seperti EarlyStopping, ReduceLROnPlateau, dan ModelCheckpoint untuk meningkatkan performa training.
+- Menggunakan callback seperti EarlyStopping, ReduceLROnPlateau, dan ModelCheckpoint untuk meningkatkan stabilitas proses training.
 
-- Mengonversi model ke format SavedModel, TensorFlow Lite, dan TensorFlow.js.
+- Menggunakan GlobalAveragePooling2D untuk mengurangi jumlah parameter agar model lebih ringan dan efisien.
 
-# Data Understanding
+- Mengonversi model ke format SavedModel, TensorFlow Lite, dan TensorFlow.js untuk mendukung deployment pada berbagai platform.
+
+## Data Understanding
 
 Dataset yang digunakan adalah Intel Image Classification Dataset.
 
 Link Dataset:
 https://www.kaggle.com/datasets/puneet6060/intel-image-classification
 
-Dataset terdiri dari sekitar 25.000 gambar dengan 6 kategori pemandangan alam:
+Pada proyek ini digunakan lima kategori gambar pemandangan alam, yaitu:
 
 1. forest
 2. glacier
@@ -68,7 +70,7 @@ Dataset terdiri dari sekitar 25.000 gambar dengan 6 kategori pemandangan alam:
 4. sea
 5. street
 
-Dataset memiliki ukuran gambar yang tidak seragam sehingga diperlukan preprocessing berupa resize sebelum proses training dilakukan.
+Dataset memiliki ukuran gambar yang tidak seragam sehingga diperlukan preprocessing berupa resize gambar sebelum proses training dilakukan.
 
 ## Import Semua Packages/Library yang Digunakan
 """
