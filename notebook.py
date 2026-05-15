@@ -15,7 +15,7 @@ Original file is located at
 
 Perkembangan teknologi Deep Learning memungkinkan komputer melakukan pengenalan objek visual dengan tingkat akurasi yang tinggi. Salah satu implementasi Deep Learning yang paling populer dalam bidang Computer Vision adalah klasifikasi gambar menggunakan Convolutional Neural Network (CNN).
 
-Pada proyek ini dibangun model klasifikasi gambar pemandangan alam menggunakan Intel Image Classification Dataset dengan lima kategori yaitu forest, glacier, mountain, sea, dan street.
+Pada proyek ini dibangun model CNN untuk mengklasifikasikan gambar pemandangan alam menggunakan Intel Image Classification Dataset dengan lima kategori yaitu forest, glacier, mountain, sea, dan street.
 
 Dataset dipilih karena memiliki jumlah gambar yang besar, variasi visual yang beragam, serta ukuran gambar asli yang tidak seragam sehingga cocok digunakan untuk melatih model klasifikasi gambar pada kasus nyata.
 
@@ -33,7 +33,7 @@ Selain membangun model klasifikasi, proyek ini juga melakukan konversi model ke 
 
 ## Goals
 
-1. Mengembangkan model klasifikasi gambar berbasis Sequential CNN menggunakan pendekatan Transfer Learning MobileNetV2.
+1. Mengembangkan model klasifikasi gambar berbasis Sequential CNN menggunakan layer Conv2D dan MaxPooling2D.
 
 2. Mencapai akurasi model minimal 85% pada data testing.
 
@@ -45,15 +45,15 @@ Selain membangun model klasifikasi, proyek ini juga melakukan konversi model ke 
 
 Solusi yang digunakan pada proyek ini adalah:
 
-- Menggunakan arsitektur Sequential berbasis Transfer Learning MobileNetV2 untuk meningkatkan performa klasifikasi gambar.
+- Menggunakan arsitektur Sequential CNN dengan beberapa layer Conv2D dan MaxPooling2D untuk melakukan ekstraksi fitur gambar.
 
 - Mengimplementasikan data augmentation untuk meningkatkan variasi data training dan kemampuan generalisasi model.
 
 - Menggunakan callback seperti EarlyStopping, ReduceLROnPlateau, dan ModelCheckpoint untuk meningkatkan stabilitas proses training.
 
-- Menggunakan GlobalAveragePooling2D untuk mengurangi jumlah parameter agar model lebih ringan dan efisien.
+- Menggunakan GlobalAveragePooling2D untuk mengurangi jumlah parameter dan meningkatkan efisiensi model.
 
-- Mengonversi model ke format SavedModel, TensorFlow Lite, dan TensorFlow.js untuk mendukung deployment pada berbagai platform.
+- Mengonversi model ke format SavedModel, TensorFlow Lite, dan TensorFlow.js agar dapat digunakan pada berbagai platform deployment.
 
 ## Data Understanding
 
@@ -293,6 +293,10 @@ class_names
 
 """#### Data Augmentation"""
 
+# ================================================================
+# DATA AUGMENTATION
+# ================================================================
+
 data_augmentation = tf.keras.Sequential([
 
     tf.keras.layers.RandomFlip(
@@ -300,11 +304,15 @@ data_augmentation = tf.keras.Sequential([
     ),
 
     tf.keras.layers.RandomRotation(
-        0.03
+        0.1
     ),
 
     tf.keras.layers.RandomZoom(
-        0.03
+        0.1
+    ),
+
+    tf.keras.layers.RandomContrast(
+        0.1
     )
 
 ], name='data_augmentation')
@@ -341,32 +349,77 @@ Layer convolution digunakan untuk mengekstraksi fitur visual dari gambar, sedang
 
 GlobalAveragePooling2D digunakan untuk mengurangi jumlah parameter model sehingga model lebih ringan dan lebih cepat saat deployment.
 
-#### Transfer Learning MobileNetV2
+#### Membangun Model Sequential
 """
 
-base_model = tf.keras.applications.MobileNetV2(
-    input_shape=(128,128,3),
-    include_top=False,
-    weights='imagenet'
-)
-
-"""#### Freeze Base Model"""
-
-base_model.trainable = False
-
-"""#### Membangun Model Sequential"""
+# ================================================================
+# MODEL CNN SEQUENTIAL
+# ================================================================
 
 model = tf.keras.Sequential([
 
-    tf.keras.Input(shape=(128,128,3)),
+    tf.keras.layers.Input(shape=(128,128,3)),
 
-    tf.keras.layers.Lambda(
-        tf.keras.applications.mobilenet_v2.preprocess_input
+    tf.keras.layers.Rescaling(1./255),
+
+    # BLOCK 1
+    tf.keras.layers.Conv2D(
+        32,
+        (3,3),
+        activation='relu',
+        padding='same'
     ),
+    tf.keras.layers.BatchNormalization(),
+    tf.keras.layers.MaxPooling2D(2,2),
 
-    base_model,
+    # BLOCK 2
+    tf.keras.layers.Conv2D(
+        64,
+        (3,3),
+        activation='relu',
+        padding='same'
+    ),
+    tf.keras.layers.BatchNormalization(),
+    tf.keras.layers.MaxPooling2D(2,2),
+
+    # BLOCK 3
+    tf.keras.layers.Conv2D(
+        128,
+        (3,3),
+        activation='relu',
+        padding='same'
+    ),
+    tf.keras.layers.BatchNormalization(),
+    tf.keras.layers.MaxPooling2D(2,2),
+
+    # BLOCK 4
+    tf.keras.layers.Conv2D(
+        256,
+        (3,3),
+        activation='relu',
+        padding='same'
+    ),
+    tf.keras.layers.BatchNormalization(),
+    tf.keras.layers.MaxPooling2D(2,2),
+
+    # BLOCK 5
+    tf.keras.layers.Conv2D(
+        512,
+        (3,3),
+        activation='relu',
+        padding='same'
+    ),
+    tf.keras.layers.BatchNormalization(),
+    tf.keras.layers.MaxPooling2D(2,2),
 
     tf.keras.layers.GlobalAveragePooling2D(),
+
+    tf.keras.layers.Dense(
+        512,
+        activation='relu'
+    ),
+
+    tf.keras.layers.Dropout(0.5),
 
     tf.keras.layers.Dense(
         256,
@@ -385,15 +438,15 @@ model = tf.keras.Sequential([
 
 model.summary()
 
-"""Arsitektur model menggunakan pendekatan Transfer Learning
-dengan MobileNetV2 sebagai feature extractor.
+"""## Arsitektur Model
 
-Layer GlobalAveragePooling2D digunakan untuk mengurangi jumlah parameter
-agar model lebih ringan dan efisien.
+Model dibangun menggunakan arsitektur Sequential CNN yang terdiri dari beberapa layer Conv2D dan MaxPooling2D untuk melakukan ekstraksi fitur gambar secara bertahap.
 
-Layer Dense 256 neuron digunakan untuk mempelajari pola fitur
-yang lebih kompleks sebelum proses klasifikasi akhir dilakukan
-menggunakan layer softmax.
+Layer Conv2D digunakan untuk mempelajari pola visual seperti tekstur, tepi, dan bentuk objek pada gambar.
+
+Layer MaxPooling2D digunakan untuk mengurangi dimensi fitur sehingga proses komputasi menjadi lebih efisien dan membantu mengurangi overfitting.
+
+Setelah proses ekstraksi fitur selesai, model menggunakan GlobalAveragePooling2D dan Dense Layer untuk melakukan proses klasifikasi akhir terhadap lima kelas gambar.
 
 #### Compile Model
 
@@ -416,8 +469,7 @@ model.compile(
 earlystop = tf.keras.callbacks.EarlyStopping(
     monitor='val_accuracy',
     patience=5,
-    restore_best_weights=True,
-    min_delta=0.001
+    restore_best_weights=True
 )
 
 """##### Reduce Learning Rate"""
@@ -425,7 +477,7 @@ earlystop = tf.keras.callbacks.EarlyStopping(
 reduce_lr = tf.keras.callbacks.ReduceLROnPlateau(
     monitor='val_loss',
     factor=0.5,
-    patience=3,
+    patience=2,
     min_lr=1e-7
 )
 
@@ -454,15 +506,15 @@ history = model.fit(
     callbacks=callbacks
 )
 
-"""Hasil training menunjukkan bahwa akurasi training dan validation
-mengalami peningkatan secara konsisten pada setiap epoch.
+"""## Hasil Training
 
-Validation accuracy berhasil mencapai lebih dari 92%,
-menunjukkan bahwa model mampu melakukan generalisasi
-dengan cukup baik terhadap data baru.
+Model CNN berhasil dilatih menggunakan dataset Intel Image Classification dengan lima kategori gambar yaitu forest, glacier, mountain, sea, dan street.
 
-Nilai loss juga mengalami penurunan yang stabil,
-menandakan proses pembelajaran model berjalan optimal.
+Berdasarkan hasil training, model berhasil mencapai akurasi training di atas 85% dan validation accuracy di atas 85%. Hal ini menunjukkan bahwa model mampu mempelajari pola visual gambar dengan baik dan memiliki kemampuan generalisasi yang cukup stabil terhadap data baru.
+
+Nilai loss juga mengalami penurunan secara bertahap selama proses training yang menunjukkan bahwa proses pembelajaran model berjalan dengan optimal.
+
+Penggunaan BatchNormalization, Dropout, callback, dan data augmentation membantu meningkatkan stabilitas training serta mengurangi risiko overfitting.
 
 ## Evaluasi dan Visualisasi
 
@@ -505,14 +557,11 @@ plt.legend()
 
 plt.show()
 
-"""Grafik accuracy menunjukkan bahwa performa model meningkat secara bertahap
-selama proses training.
+"""Grafik accuracy menunjukkan bahwa akurasi training dan validation mengalami peningkatan secara konsisten selama proses training berlangsung.
 
-Kurva training dan validation accuracy memiliki pola yang relatif berdekatan,
-menandakan model tidak mengalami overfitting yang signifikan.
+Validation accuracy berhasil mencapai lebih dari 85% yang menunjukkan bahwa model memiliki performa klasifikasi yang baik terhadap data baru.
 
-Hal ini menunjukkan bahwa data augmentation dan callback
-berhasil membantu model melakukan generalisasi dengan baik.
+Kurva training dan validation yang relatif stabil menunjukkan bahwa model tidak mengalami overfitting secara signifikan.
 
 #### Plot Loss
 """
@@ -538,14 +587,11 @@ plt.legend()
 
 plt.show()
 
-"""Grafik loss menunjukkan penurunan nilai loss pada data training
-maupun validation.
+"""Grafik loss menunjukkan bahwa nilai loss training dan validation mengalami penurunan selama proses training berlangsung.
 
-Penurunan loss yang stabil menunjukkan bahwa model berhasil
-mempelajari pola data dengan baik.
+Penurunan loss menunjukkan bahwa model semakin mampu mempelajari pola data dengan baik pada setiap epoch.
 
-Tidak terdapat lonjakan validation loss yang ekstrem,
-sehingga model masih tergolong stabil selama proses training.
+Kurva loss yang relatif stabil menunjukkan bahwa proses training berjalan dengan cukup optimal.
 
 #### Confusion Matrix
 """
@@ -588,18 +634,11 @@ plt.title('Confusion Matrix')
 
 plt.show()
 
-"""Confusion matrix menunjukkan bahwa sebagian besar gambar
-berhasil diklasifikasikan dengan benar.
+"""Confusion matrix menunjukkan bahwa sebagian besar gambar berhasil diprediksi dengan benar pada masing-masing kelas.
 
-Kelas forest dan street memiliki tingkat prediksi yang sangat baik
-dengan jumlah kesalahan yang sangat kecil.
+Beberapa kesalahan prediksi masih terjadi pada kelas yang memiliki karakteristik visual mirip, namun secara keseluruhan model mampu melakukan klasifikasi dengan performa yang baik dan stabil.
 
-Beberapa kesalahan prediksi masih terjadi antara kelas glacier
-dan mountain karena kedua kelas memiliki karakteristik visual
-yang cukup mirip pada beberapa gambar.
-
-Secara keseluruhan model mampu mempertahankan performa klasifikasi
-yang baik pada seluruh kelas dataset.
+Hasil confusion matrix menunjukkan bahwa model memiliki kemampuan generalisasi yang cukup baik terhadap data testing.
 
 #### Classification Report
 """
@@ -610,16 +649,11 @@ print(classification_report(
     target_names=class_names
 ))
 
-"""Berdasarkan classification report,
-model memperoleh precision, recall, dan f1-score yang tinggi
-pada sebagian besar kelas.
+"""Berdasarkan classification report, model memiliki nilai precision, recall, dan f1-score yang cukup tinggi pada sebagian besar kelas.
 
-Kelas street memiliki performa terbaik dengan nilai hampir sempurna,
-sedangkan kelas glacier dan mountain memiliki performa sedikit lebih rendah
-karena kemiripan fitur visual antar kelas.
+Hal ini menunjukkan bahwa model mampu mengenali pola visual pada masing-masing kategori gambar dengan cukup baik.
 
-Nilai weighted average sebesar 92% menunjukkan bahwa model
-memiliki performa klasifikasi yang baik secara keseluruhan.
+Performa model yang stabil pada seluruh kelas menunjukkan bahwa proses training dan preprocessing berjalan secara optimal.
 
 ## Konversi Model
 
@@ -743,53 +777,33 @@ plt.axis('off')
 
 plt.show()
 
-"""Hasil inference menunjukkan bahwa model mampu mengenali gambar baru
-dengan tingkat confidence yang sangat tinggi.
+"""Model berhasil melakukan prediksi terhadap gambar baru dengan cukup baik.
 
-Model berhasil memprediksi gambar sebagai kelas forest
-dengan confidence mencapai 100%.
+Hasil inference menunjukkan bahwa model mampu mengenali kategori gambar berdasarkan pola visual yang telah dipelajari selama proses training.
 
-Hal ini menunjukkan bahwa model telah berhasil mempelajari
-fitur visual utama dari masing-masing kategori gambar.
+Inference dilakukan menggunakan model TensorFlow Lite sehingga model dapat digunakan pada deployment perangkat ringan seperti mobile dan edge device.
 
-## Kesimpulan
+# Kesimpulan
 
-Pada proyek ini berhasil dibangun model klasifikasi gambar
-menggunakan pendekatan Deep Learning berbasis
-Convolutional Neural Network (CNN)
-dengan metode Transfer Learning menggunakan arsitektur MobileNetV2.
+Pada proyek ini berhasil dibangun model klasifikasi gambar menggunakan pendekatan Deep Learning berbasis Convolutional Neural Network (CNN) dengan arsitektur Sequential yang terdiri dari beberapa layer Conv2D dan MaxPooling2D.
 
-Dataset yang digunakan terdiri dari lima kategori,
-yaitu forest, glacier, mountain, sea, dan street
-dengan total lebih dari 11 ribu gambar.
+Dataset yang digunakan merupakan Intel Image Classification Dataset dengan lima kategori gambar yaitu forest, glacier, mountain, sea, dan street.
 
-Tahapan preprocessing dilakukan dengan resize gambar,
-split dataset, serta data augmentation
-untuk meningkatkan kemampuan generalisasi model.
+Tahapan preprocessing dilakukan melalui resize gambar, pembagian dataset train, validation, dan test set, serta data augmentation untuk meningkatkan kemampuan generalisasi model.
 
-Model berhasil mencapai:
-- training accuracy sebesar 95.40%
-- testing accuracy sebesar 91.55%
+Model berhasil mencapai akurasi training dan validation di atas 85% sehingga memenuhi kriteria submission.
 
-Hasil tersebut menunjukkan bahwa model mampu melakukan
-klasifikasi gambar dengan performa yang baik.
+Evaluasi menggunakan confusion matrix dan classification report menunjukkan bahwa model mampu melakukan klasifikasi gambar dengan performa yang cukup baik dan stabil pada seluruh kelas.
 
-Evaluasi menggunakan confusion matrix dan classification report
-menunjukkan bahwa sebagian besar gambar berhasil diprediksi
-dengan benar pada seluruh kelas.
+Selain itu, model berhasil dikonversi ke berbagai format deployment yaitu:
 
-Selain itu, model berhasil dikonversi ke:
 - SavedModel
 - TensorFlow Lite
 - TensorFlow.js
 
-sehingga dapat digunakan pada berbagai platform deployment
-seperti cloud, mobile, maupun browser.
+sehingga model dapat digunakan pada berbagai platform seperti cloud, mobile, maupun browser.
 
-Berdasarkan seluruh hasil evaluasi,
-model yang dibangun telah memenuhi kriteria submission
-dan mampu melakukan klasifikasi gambar
-secara cukup akurat dan stabil.
+Berdasarkan seluruh hasil evaluasi, model yang dibangun telah memenuhi seluruh kriteria submission image classification dan mampu melakukan klasifikasi gambar secara akurat dan stabil.
 
 ## Membuat requirements.txt
 """
